@@ -17,6 +17,8 @@ Born2beroot es un proyecto de administración de sistemas del programa de 42. Su
 
 El proyecto no consiste únicamente en instalar un sistema operativo: también requiere comprender por qué existe cada medida de seguridad y poder explicar la configuración del servidor.
 
+El servidor está configurado para el login de 42 `vhedo-ga`; el hostname sigue la convención requerida `vhedo-ga42`.
+
 ## Objetivos de aprendizaje
 
 - Instalar y configurar un servidor Linux mínimo en una máquina virtual.
@@ -112,7 +114,8 @@ sudo journalctl _COMM=sudo
 
 ## Autor
 
-**wolfredothewise**
+**vhedo-ga**
 
-- GitHub: [@wolfredothewise](https://github.com/wolfredothewise)
+- Login: `vhedo-ga`
+- GitHub: [@vhedo-ga](https://github.com/vhedo-ga)
 
