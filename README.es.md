@@ -1,71 +1,152 @@
-<div align="center">
+*Este proyecto ha sido creado como parte del plan de estudios de 42 por vhedo-ga.*
 
-# Born2beroot
+<div align="right">
 
-**Un proyecto de administración segura de servidores Linux**
-
-[![Proyecto 42](https://img.shields.io/badge/42-Born2beroot-black?logo=42)](https://www.42network.org/)
-[![Linux](https://img.shields.io/badge/Linux-Debian%20%7C%20Rocky%20Linux-FCC624?logo=linux&logoColor=black)](https://www.linux.org/)
-
-[English](README.md) · [Español](README.es.md)
+[English](README.md) | [Español](README.es.md)
 
 </div>
 
-## Sobre el proyecto
+# Born2beRoot
 
-Born2beroot es un proyecto de administración de sistemas del programa de 42. Su objetivo es crear y proteger un servidor Linux virtual, aprendiendo virtualización, particionado, usuarios y grupos, SSH, configuración del firewall, políticas de contraseñas, gestión de privilegios y monitorización del sistema.
+Born2beRoot es un proyecto de administración de sistemas de 42 que consiste en crear y reforzar un servidor Linux virtual. Enseña virtualización, particionado, LVM, cifrado, gestión de usuarios y grupos, SSH, configuración de firewall, políticas de contraseñas, control de privilegios y monitorización del sistema.
 
-El proyecto no consiste únicamente en instalar un sistema operativo: también requiere comprender por qué existe cada medida de seguridad y poder explicar la configuración del servidor.
+## Descripción
 
-El servidor está configurado para el login de 42 `vhedo-ga`; el hostname sigue la convención requerida `vhedo-ga42`.
+El objetivo es configurar un servidor seguro y mínimo que arranque sin entorno gráfico y pueda auditarse con las herramientas propias del sistema. La implementación separa sistemas de archivos mediante particiones y volúmenes lógicos, restringe el acceso privilegiado, limita la exposición de red y muestra automáticamente el estado del servidor.
 
-## Objetivos de aprendizaje
+Las decisiones principales de diseño son:
 
-- Instalar y configurar un servidor Linux mínimo en una máquina virtual.
-- Utilizar LVM y particiones cifradas cuando sea necesario.
-- Gestionar usuarios, grupos, propietarios, permisos y acceso mediante `sudo`.
-- Configurar SSH de forma segura sin exponer la cuenta root.
-- Aplicar políticas de contraseñas y expiración de cuentas.
-- Configurar un firewall exponiendo únicamente los servicios necesarios.
-- Automatizar la monitorización mediante un script Bash.
-- Comprender los fundamentos de virtualización y hardening de servidores.
+- Utilizar una cuenta administrativa para el trabajo normal y `sudo` para elevar privilegios.
+- Deshabilitar el acceso root mediante SSH y restringir el puerto SSH.
+- Permitir únicamente los servicios necesarios en el firewall.
+- Aplicar reglas de expiración y complejidad de contraseñas.
+- Restringir y registrar el uso de `sudo`.
+- Ejecutar un script Bash que recopila y muestra la información de monitorización requerida.
 
-## Requisitos principales
+### Elección del sistema operativo
 
-### Sistema operativo
+Esta configuración utiliza **Debian**. Es una opción práctica para un primer servidor reforzado: dispone de documentación extensa, actualizaciones conservadoras, un gran repositorio de paquetes y herramientas como APT y UFW fáciles de administrar.
 
-La máquina virtual utiliza una de las distribuciones permitidas por el subject:
+Sus principales desventajas son que algunas versiones de paquetes pueden ser más antiguas que en distribuciones con ciclos rápidos y que ciertas herramientas empresariales o repositorios pueden requerir configuración adicional.
 
-- Debian
-- Rocky Linux
+#### Debian vs Rocky Linux
 
-La instalación se realiza sin interfaz gráfica para mantener el servidor ligero y facilitar su auditoría.
+| Debian | Rocky Linux |
+| --- | --- |
+| Utiliza APT y paquetes DEB. | Utiliza DNF y paquetes RPM. |
+| Amplia documentación comunitaria y repositorios generales. | Compatible a nivel binario con Red Hat Enterprise Linux y orientado a entornos empresariales. |
+| UFW es una opción habitual. | SELinux y firewalld son opciones nativas habituales. |
+| Versiones centradas en estabilidad. | Compatible con infraestructura Red Hat y soporte empresarial. |
+| Adecuado para una configuración ligera y sencilla. | Adecuado para entornos orientados a RHEL. |
 
-### Almacenamiento y cifrado
+### Elecciones obligatorias de seguridad
 
-El disco se particiona de acuerdo con los requisitos del subject. Se utiliza LVM para gestionar los volúmenes lógicos y los volúmenes cifrados requeridos se protegen mediante una contraseña.
+**AppArmor vs SELinux**
 
-### Usuarios, grupos y privilegios
+- **AppArmor** usa perfiles de control obligatorio de acceso, es relativamente fácil de leer y modificar y resulta habitual en Debian/Ubuntu.
+- **SELinux** usa etiquetas y políticas detalladas, está muy integrado en distribuciones Red Hat y puede ser más complejo de depurar.
+- Esta implementación combina Debian con AppArmor porque encaja mejor con su modelo de paquetes y administración.
 
-El sistema incluye un usuario administrativo normal, un grupo administrativo, una política de contraseñas robustas, permisos `sudo` restringidos y acceso root directo deshabilitado mediante SSH. Las acciones administrativas se realizan mediante `sudo` para aportar trazabilidad.
+**UFW vs firewalld**
 
-### SSH y firewall
+- **UFW** es una interfaz sencilla para nftables/iptables con reglas claras de permitir y denegar.
+- **firewalld** gestiona zonas dinámicas y reglas temporales o permanentes, y es común en Rocky Linux.
+- UFW es adecuado para Debian cuando se necesita un conjunto pequeño y predecible de reglas.
 
-SSH está configurado en el puerto requerido por el subject. El acceso directo de root está deshabilitado y solo los usuarios previstos pueden autenticarse. El firewall permite únicamente los servicios necesarios y bloquea por defecto el tráfico entrante no solicitado.
+**VirtualBox vs UTM**
+
+- **VirtualBox** está disponible en varias plataformas y facilita el flujo gráfico habitual de los proyectos de 42.
+- **UTM** es especialmente práctico en Apple Silicon y ofrece integración específica con macOS.
+- Esta guía utiliza VirtualBox por su compatibilidad, gestión de instantáneas y herramientas de red ampliamente conocidas.
+
+## Diseño de particiones y seguridad
+
+La configuración del disco sigue los requisitos del subject y utiliza un volumen físico cifrado, LVM y volúmenes lógicos separados cuando sea necesario. LVM facilita modificar el tamaño de los volúmenes sin modificar el sistema anfitrión.
+
+El servidor aplica además:
+
+- Política de contraseñas fuertes y expiración de cuentas.
+- Restricciones y registro de acciones mediante `sudo`.
+- Autenticación SSH mediante contraseña o clave, según el subject.
+- Acceso SSH de root deshabilitado.
+- Reglas de firewall limitadas a SSH y servicios autorizados.
+- Paquetes mínimos y actualizaciones de seguridad periódicas.
+
+## Usuarios y privilegios
+
+La cuenta administrativa utiliza el login de 42 `vhedo-ga`. El hostname recomendado es `vhedo-ga42`, siguiendo la convención login más `42`.
+
+Las tareas administrativas deben realizarse mediante `sudo`, no mediante una sesión root. La configuración de `sudo` debe limitar los comandos, exigir autenticación cuando corresponda y registrar su uso.
+
+## SSH
+
+SSH escucha en el puerto requerido por el subject de Born2beRoot. Antes de modificar SSH, conviene mantener abierta una sesión y probar una nueva conexión desde el host.
 
 ```bash
-ssh <usuario>@<ip-del-servidor> -p <puerto-ssh>
-sudo ufw status numbered                 # Debian
-sudo firewall-cmd --list-all             # Rocky Linux
+ssh vhedo-ga@<ip-del-servidor> -p <puerto-ssh>
+sudo sshd -t
+sudo systemctl status ssh
 ```
 
-### Script de monitorización
+## Firewall
 
-Un script Bash muestra periódicamente información relevante del servidor, incluyendo la versión del sistema y del kernel, uso de CPU y RAM, espacio de disco, último arranque, estado de LVM, conexiones activas, usuarios conectados, direcciones de red y número de comandos ejecutados con `sudo`.
+El firewall permite el puerto SSH y rechaza por defecto el tráfico entrante no solicitado.
 
-El script se programa mediante `cron` o `wall` para mostrar automáticamente su salida a los usuarios conectados con el intervalo requerido.
+```bash
+# Debian / UFW
+sudo ufw status verbose
 
-## Comprobaciones de la máquina virtual
+# Rocky Linux / firewalld
+sudo firewall-cmd --list-all
+```
+
+## Monitorización
+
+Un script Bash recopila la información requerida: arquitectura y kernel, CPU físicas y virtuales, uso de RAM y disco, carga de CPU, último arranque, estado de LVM, información de red, usuarios activos y número de comandos ejecutados con `sudo`.
+
+El script se programa mediante `cron` o se muestra mediante `wall` con el intervalo indicado por el subject.
+
+```bash
+ls /var/spool/cron
+sudo crontab -l
+df -h
+free -m
+lsblk
+```
+
+## Perspectiva de red teaming
+
+Born2beRoot proporciona un entorno controlado para comprender vectores de ataque y controles defensivos. Un ejercicio defensivo de red teaming puede incluir:
+
+- Auditar servicios expuestos y la configuración SSH.
+- Comprobar contraseñas débiles y políticas de expiración.
+- Revisar reglas `sudo` con privilegios excesivos.
+- Verificar el bloqueo por defecto del firewall.
+- Enumerar puertos abiertos y procesos innecesarios.
+- Comprobar cifrado, registros, actualizaciones y políticas MAC.
+
+Estas comprobaciones solo deben realizarse en esta máquina virtual propia o en sistemas con autorización explícita. El objetivo es validar las defensas, no explotar servicios externos.
+
+## Instrucciones
+
+### Requisitos previos
+
+- VirtualBox o UTM
+- ISO de Debian o Rocky Linux
+- Archivo `en.subject.pdf`
+- Acceso al host para redirección de puertos y pruebas SSH
+
+### Instalación
+
+1. Crear la máquina virtual y desactivar la instalación gráfica.
+2. Crear las particiones, volúmenes LVM y cifrado requeridos.
+3. Instalar el sistema base y configurar la red.
+4. Crear `vhedo-ga`, los grupos necesarios y una política de contraseñas segura.
+5. Configurar `sudo`, SSH y el firewall.
+6. Añadir y programar el script de monitorización.
+7. Reiniciar y verificar todos los requisitos.
+
+### Verificación
 
 ```bash
 uname -a
@@ -75,47 +156,37 @@ df -h
 getent passwd
 getent group
 sudo systemctl status ssh
+sudo ufw status verbose
 sudo journalctl _COMM=sudo
 ```
 
-## Resumen de instalación
-
-1. Crear una máquina virtual en VirtualBox u otro hipervisor compatible.
-2. Instalar el sistema operativo seleccionado sin entorno gráfico.
-3. Configurar las particiones, los volúmenes LVM y el cifrado requeridos.
-4. Crear el usuario administrativo y los grupos necesarios.
-5. Aplicar las políticas de contraseñas, `sudo` y SSH.
-6. Configurar el firewall y verificar que solo el puerto requerido esté abierto.
-7. Instalar y programar el script de monitorización.
-8. Reiniciar y verificar todos los requisitos antes de la evaluación.
-
-> **Nota de seguridad:** Nunca subas contraseñas, contraseñas de cifrado, claves privadas u otra información sensible a este repositorio.
-
-## Lista de comprobación para la evaluación
+### Lista de comprobación
 
 - [ ] La máquina virtual arranca correctamente.
-- [ ] El hostname y el nombre de usuario siguen el formato requerido.
-- [ ] El disco utiliza la configuración LVM/cifrado requerida.
-- [ ] La política de contraseñas está activa y se aplica correctamente.
-- [ ] La política de `sudo` está restringida y registra las acciones.
-- [ ] SSH utiliza el puerto requerido y el acceso root está deshabilitado.
-- [ ] El firewall está activo con las reglas correctas.
-- [ ] El script de monitorización se ejecuta automáticamente con el intervalo requerido.
-- [ ] La configuración puede explicarse durante la defensa del proyecto.
+- [ ] El hostname `vhedo-ga42` está configurado.
+- [ ] Se cumplen los requisitos de particiones, LVM y cifrado.
+- [ ] La política de contraseñas y expiración está activa.
+- [ ] `sudo` está restringido y registra las acciones.
+- [ ] SSH usa el puerto requerido y el acceso root está deshabilitado.
+- [ ] El firewall rechaza tráfico no solicitado.
+- [ ] La monitorización se ejecuta con el intervalo requerido.
+- [ ] La implementación puede explicarse durante la defensa.
+
+> **Nota de seguridad:** Nunca subas contraseñas, contraseñas de cifrado, claves privadas ni información sensible.
 
 ## Recursos
 
-- [Subject de Born2beroot de 42](en.subject.pdf)
+- [Subject de Born2beRoot](en.subject.pdf)
 - [Documentación de Debian](https://www.debian.org/doc/)
 - [Documentación de Rocky Linux](https://docs.rockylinux.org/)
 - [Documentación de OpenSSH](https://www.openssh.com/manual.html)
+- [Documentación de AppArmor](https://documentation.ubuntu.com/server/how-to/security/apparmor/)
+- [Proyecto SELinux](https://selinuxproject.org/page/Main_Page)
 - [Documentación de UFW](https://help.ubuntu.com/community/UFW)
-- [Documentación de Firewalld](https://firewalld.org/documentation/)
+- [Documentación de firewalld](https://firewalld.org/documentation/)
+- [Manual de VirtualBox](https://www.virtualbox.org/manual/)
+- [Documentación de UTM](https://docs.getutm.app/)
 
-## Autor
+### Uso de IA
 
-**vhedo-ga**
-
-- Login: `vhedo-ga`
-- GitHub: [@vhedo-ga](https://github.com/vhedo-ga)
-
+La IA se utilizó para estructurar y mejorar este README, organizar los requisitos del subject en secciones claras y revisar la redacción. La IA no configuró la máquina virtual, modificó archivos del sistema, eligió ni proporcionó credenciales, ni verificó el comportamiento real del servidor. La configuración técnica final debe comprobarse y documentarse localmente por el autor.
